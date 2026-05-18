@@ -39,6 +39,13 @@ async function getSujetByIdDb(id) {
   );
   return result.rows[0] ?? null;
 }
+const getPostByUser = async (id_user) => {
+  const result = await pool.query(
+    'SELECT * FROM forum_post WHERE id_user=$1 ORDER BY date_creation DESC',
+    [id_user]
+  );
+  return result.rows;
+};
 
 async function closeSujetDb(id) {
   const result = await pool.query(
@@ -110,4 +117,5 @@ module.exports = {
   getCommentairesByPostDb,
   getCommentaireByIdDb,
   softDeleteCommentaireDb,
+  getPostByUser,
 };

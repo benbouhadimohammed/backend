@@ -1,9 +1,14 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { findUserByEmail, createUser } = require("../models/usermodel");
+const nodemailer = require("nodemailer");
+
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+
+
+
 
 
 const register = async (req, res) => {
@@ -53,7 +58,6 @@ const register = async (req, res) => {
     res.status(500).json({ message: error.message })
   }
 };
-
 
 const login = async (req, res) => {
   try {

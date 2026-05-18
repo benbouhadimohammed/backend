@@ -1,5 +1,7 @@
 const multer = require('multer')
 const path = require('path')
+ // 👈 AJOUTE CETTE LIGNE TOUT EN HAUT
+const fs = require('fs');
 
 // Où stocker + comment nommer les fichiers
 const storage = multer.diskStorage({

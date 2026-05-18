@@ -20,7 +20,7 @@ const createUser = async (nom, email, hashedPassword) => {
   
     
   } catch (error) {
-    console.error("❌ Error:", error);
+    console.error(" Error:", error);
   }
 };
 
@@ -29,7 +29,7 @@ const createUser = async (nom, email, hashedPassword) => {
 // 🔍 GET USER BY ID
 const getUserById = async (id) => {
   const result = await pool.query(
-    "SELECT id_user, nom, email, mot_de_passe, role, date_inscription FROM users WHERE id_user = $1",
+    "SELECT id_user, nom, email, mot_de_passe, role, photo, date_inscription FROM users WHERE id_user = $1",
     [id]
   );
   return result.rows[0];
@@ -40,6 +40,14 @@ const updateUser = async (id, nom, email) => {
   const result = await pool.query(
     "UPDATE users SET nom = $1, email = $2 WHERE id_user = $3 RETURNING id_user, nom, email",
     [nom, email, id]
+  );
+  return result.rows[0];
+};
+const updatePhoto = async (id, photo) => {
+  const result = await pool.query(
+    `UPDATE users SET photo=$1 WHERE id_user=$2
+     RETURNING id_user, nom, email, photo`,
+    [photo, id]
   );
   return result.rows[0];
 };
@@ -58,6 +66,6 @@ const deleteUser = async (id) => {
 };
 
 
- module.exports = {  getUserById,  updatePassword, deleteUser, createUser, findUserByEmail, updateUser };
+ module.exports = {  getUserById,  updatePassword, deleteUser, createUser, findUserByEmail, updateUser, updatePhoto };
   
 
