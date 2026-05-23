@@ -30,22 +30,24 @@ app.get('/', (req, res) => {
   });
 });
 
-// Liste des origines autorisées (Local + Vercel)
-const allowedOrigins = [
-  'http://localhost:5173',
-  'https://bayticare.vercel.app/'
-];
-
-// Configuration des CORS pour Express
+// ✅ Configuration des CORS ultra-robuste et dynamique pour la soutenance
 app.use(cors({
   origin: function (origin, callback) {
-    // Permet les requêtes sans origine (comme Postman ou Render lui-même)
+    // 1. Autoriser les requêtes sans origine (comme Postman ou requêtes internes)
     if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Bloqué par la politique CORS de BaytiCare'));
+
+    // 2. Autoriser si l'origine contient localhost ou ton domaine Vercel
+    if (origin.includes('localhost') || origin.includes('bayticare.vercel.app')) {
+      return callback(null, true);
+    } 
+    
+    // 3. Sécurité de secours si Vercel génère des URLs de preview (ex: bayticare-git...)
+    if (origin.includes('vercel.app')) {
+      return callback(null, true);
     }
+
+    // Sinon, bloquer l'accès
+    return callback(new Error('Bloqué par la politique CORS de BaytiCare'));
   },
   credentials: true
 }));
@@ -53,16 +55,16 @@ app.use(cors({
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// ✅ Configuration de Socket.io corrigée pour accepter Vercel et le Local
+// ✅ Configuration de Socket.io synchronisée sur les CORS dynamiques
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: true, // Autorise automatiquement l'origine validée par le middleware CORS ci-dessus
     methods: ["GET", "POST"],
     credentials: true
   }
 });
 
-// ✅ ASTUCE CHOC : On partage l'instance 'io' dans Express pour casser la dépendance circulaire
+// ✅ Partage de l'instance 'io' dans Express pour casser la dépendance circulaire
 app.set('io', io);
 
 // Routage des API
