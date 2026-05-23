@@ -33,7 +33,7 @@ app.get('/', (req, res) => {
 // Liste des origines autorisées (Local + Vercel)
 const allowedOrigins = [
   'http://localhost:5173',
-  'https://bayticare.vercel.app'
+  'https://bayticare.vercel.app/'
 ];
 
 // Configuration des CORS pour Express
