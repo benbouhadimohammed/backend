@@ -30,20 +30,35 @@ app.get('/', (req, res) => {
   });
 });
 
-// Configuration des CORS
+// Liste des origines autorisées (Local + Vercel)
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://bayticare-frontend.vercel.app'
+];
+
+// Configuration des CORS pour Express
 app.use(cors({
-  origin: 'http://localhost:5173', // Port de ton frontend Vite
-  credentials: true,
+  origin: function (origin, callback) {
+    // Permet les requêtes sans origine (comme Postman ou Render lui-même)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Bloqué par la politique CORS de BaytiCare'));
+    }
+  },
+  credentials: true
 }));
 
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// Configuration de Socket.io
+// ✅ Configuration de Socket.io corrigée pour accepter Vercel et le Local
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173",
-    methods: ["GET", "POST"]
+    origin: allowedOrigins,
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
@@ -60,6 +75,7 @@ app.use("/api/favoris", favorisroutes);
 app.use("/api/messages", messageRoutes);
 app.use('/api/contacts', contactRoutes);
 app.use('/api/notifications', notificationRoutes);
+
 // Middleware d'authentification pour Socket.io
 io.use((socket, next) => {
   const token = socket.handshake.auth.token;
@@ -99,5 +115,5 @@ io.on('connection', (socket) => {
 
 // ✅ Toujours écouter via 'server.listen' et non 'app.listen' pour activer Socket.io !
 server.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`Server is running on PORT ${PORT}`);
 });
