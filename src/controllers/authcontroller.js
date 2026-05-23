@@ -5,7 +5,7 @@ const pool = require('../config/db');
 
 
 const crypto = require('crypto'); // À ajouter en haut de ton fichier de contrôleur s'il n'y est pas déjà
-const { sendValidationEmail } = require('../services/emailService'); // Chemin vers ton service Brevo
+const { sendValidationEmail } = require('../services/emailservice'); // Chemin vers ton service Brevo
 
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
