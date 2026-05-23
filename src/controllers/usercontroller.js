@@ -15,34 +15,28 @@ const userModel = require("../models/usermodel");
 const path = require('path'); 
 const fs = require('fs');
 
-
-
 // 👤 GET PROFILE
 const getProfile = async (req, res) => {
   try {
-   
-    const user = await getUserById(req.user.id);
-   
+    // Dynamique : prend l'un ou l'au-delà s'il est présent
+    const userId = req.user.id || req.user.id_user; 
+    if (!userId) return res.status(401).json({ error: "Identifiant utilisateur introuvable dans le token" });
+
+    const user = await getUserById(userId);
+    if (!user) return res.status(404).json({ error: "Utilisateur introuvable" });
+
     res.json(user);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// Upload photo de profil
-
-
-// Récupérer photo profil par id
-
-
-
 const getPrestataireProfil = async (req, res) => {
   try {
     const { id } = req.params
 
-    // Infos du prestataire
     const user = await pool.query(
-      `SELECT id_user, nom,  type_user, date_inscription, photo, email, numero
+      `SELECT id_user, nom, type_user, date_inscription, photo, email, numero
        FROM users 
        WHERE id_user = $1 AND type_user = 'prestataire'`,
       [id]
@@ -52,7 +46,6 @@ const getPrestataireProfil = async (req, res) => {
       return res.status(404).json({ message: 'Prestataire introuvable' })
     }
 
-    // Ses annonces actives
     const annonces = await pool.query(
       `SELECT id_annonce, titre, type_travail, wilaya, prix, photo, date_publication
        FROM annonces
@@ -73,24 +66,22 @@ const getPrestataireProfil = async (req, res) => {
 const updateProfile = async (req, res) => {
   try {
     const { nom, email, numero } = req.body;
+    const userId = req.user.id || req.user.id_user; 
      
-    const user = await updateUser(req.user.id, nom, email, numero);
-
+    const user = await updateUser(userId, nom, email, numero);
     res.json(user);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
+
 const uploadPhoto = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: 'Aucune image fournie' });
 
-
-    const userId = req.user.id; 
+    const userId = req.user.id || req.user.id_user; 
 
     const user = await getUserById(userId);
-    
-
     if (!user) {
       return res.status(404).json({ message: 'Utilisateur introuvable' });
     }
@@ -103,58 +94,53 @@ const uploadPhoto = async (req, res) => {
     const photoUrl = `/uploads/${req.file.filename}`;
     const updated = await updatePhoto(userId, photoUrl);
     
-    
-   
-    
-    res.json({ message: 'Photo mise à jour',photo: updated.photo});
+    res.json({ message: 'Photo mise à jour', photo: updated.photo });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-
 const changePassword = async (req, res) => {
   try {
     const { oldPassword, newPassword } = req.body;
+    const userId = req.user.id || req.user.id_user; 
 
-    const user = await getUserById(req.user.id);
-    
-
+    const user = await getUserById(userId);
     const isMatch = await bcrypt.compare(oldPassword, user.mot_de_passe);
 
     if (!isMatch) {
       return res.status(400).json({ message: "Ancien mot de passe incorrect" });
     }
 
-     if (!PASSWORD_REGEX.test(newPassword)) {
+    if (!PASSWORD_REGEX.test(newPassword)) {
       return res.status(400).json({
         message: "Password must be at least 8 characters, include uppercase, lowercase and a number",
       });
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-    await updatePassword(req.user.id, hashedPassword);
+    await updatePassword(userId, hashedPassword);
 
     res.json({ message: "Mot de passe mis à jour" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
+
 const getMesAnnonces = async (req, res) => {
   try {
-    console.log(req.user);
-    const annonces = await getAnnoncesByUser(req.user.id);
+    const userId = req.user.id || req.user.id_user; 
+    const annonces = await getAnnoncesByUser(userId);
     res.json(annonces);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// DELETE /profile/annonces/:id
 const supprimerMonAnnonce = async (req, res) => {
   try {
-    const annonce = await deleteAnnonce(req.params.id, req.user.id_user);
+    const userId = req.user.id || req.user.id_user; 
+    const annonce = await deleteAnnonce(req.params.id, userId);
     if (!annonce) return res.status(404).json({ message: 'Annonce introuvable ou non autorisée' });
     res.json({ message: 'Annonce supprimée' });
   } catch (err) {
@@ -162,20 +148,20 @@ const supprimerMonAnnonce = async (req, res) => {
   }
 };
 
-// GET /profile/posts
 const getMesPosts = async (req, res) => {
   try {
-    const posts = await getPostByUser(req.user.id);
+    const userId = req.user.id || req.user.id_user; 
+    const posts = await getPostByUser(userId);
     res.json(posts);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// DELETE /profile/posts/:id
 const supprimerMonPost = async (req, res) => {
   try {
-    const post = await deleteSujetDb(parseInt(req.params.id), req.user.id);
+    const userId = req.user.id || req.user.id_user; 
+    const post = await deleteSujetDb(parseInt(req.params.id), userId);
     if (!post) return res.status(404).json({ message: 'Post introuvable ou non autorisé' });
     res.json({ message: 'Post supprimé' });
   } catch (err) {
@@ -183,22 +169,23 @@ const supprimerMonPost = async (req, res) => {
   }
 };
 
-// GET /profile/favoris
 const getMesFavoris = async (req, res) => {
   try {
-    const favoris = await getFavoris(req.user.id_user);
+    const userId = req.user.id || req.user.id_user; 
+    const favoris = await getFavoris(userId);
     res.json(favoris);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// POST /profile/favoris
 const ajouterFavori = async (req, res) => {
   try {
     const { id_annonce } = req.body;
+    const userId = req.user.id || req.user.id_user; 
     if (!id_annonce) return res.status(400).json({ message: 'id_annonce requis' });
-    const favori = await addFavori(req.user.id_user, id_annonce);
+    
+    const favori = await addFavori(userId, id_annonce);
     res.status(201).json(favori);
   } catch (err) {
     if (err.code === '23505') return res.status(400).json({ message: 'Annonce déjà en favoris' });
@@ -206,10 +193,10 @@ const ajouterFavori = async (req, res) => {
   }
 };
 
-// DELETE /profile/favoris/:id
 const supprimerFavori = async (req, res) => {
   try {
-    const favori = await removeFavori(req.params.id, req.user.id_user);
+    const userId = req.user.id || req.user.id_user; 
+    const favori = await removeFavori(req.params.id, userId);
     if (!favori) return res.status(404).json({ message: 'Favori introuvable' });
     res.json({ message: 'Favori retiré' });
   } catch (err) {
@@ -217,10 +204,10 @@ const supprimerFavori = async (req, res) => {
   }
 };
 
-
 const deleteAccount = async (req, res) => {
   try {
-    await deleteUser(req.user.id);
+    const userId = req.user.id || req.user.id_user; 
+    await deleteUser(userId);
     res.json({ message: "Compte supprimé" });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -241,7 +228,4 @@ module.exports = {
   supprimerFavori,
   getPrestataireProfil,
   uploadPhoto,
- 
-
-
 };
