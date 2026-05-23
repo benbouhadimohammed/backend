@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const pool = require("../config/db"); // 👈 FIX 2 : Ne pas oublier d'importer ton pool SQL !
+const pool = require("../config/db"); 
 
 const authMiddleware = async (req, res, next) => {
   const authHeader = req.headers["authorization"];
@@ -17,10 +17,18 @@ const authMiddleware = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "ton_jwt_secret");
     
-    // Requête SQL pour intercepter le statut en temps réel
+    // 🌟 SÉCURITÉ : On récupère l'ID qu'il s'appelle id_user ou id
+    const userId = decoded.id_user || decoded.id;
+
+    if (!userId) {
+      console.error("Erreur Auth : Aucun ID trouvé dans le token décode.");
+      return res.status(401).json({ message: "Invalid token structure" });
+    }
+
+    // Requête SQL sécurisée avec un ID qui existe à coup sûr
     const result = await pool.query(
       'SELECT statut FROM users WHERE id_user = $1',
-      [decoded.id]
+      [userId]
     );
     const user = result.rows[0];
 
@@ -29,6 +37,7 @@ const authMiddleware = async (req, res, next) => {
       return res.status(403).json({ message: 'Compte bloqué — contactez un administrateur' });
     }
 
+    // On passe l'objet décodé à la suite
     req.user = decoded; 
     next(); 
   } catch (error) {
@@ -43,8 +52,9 @@ const adminMiddleware = (req, res, next) => {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    // Vérification du rôle stocké dans le Token
-    if (req.user.role !== "admin") {
+    // Vérification du rôle stocké dans le Token (gère les deux cas)
+    const userRole = req.user.role;
+    if (userRole !== "admin") {
       return res.status(403).json({ message: "Access denied (admin only)" });
     }
 
@@ -55,7 +65,6 @@ const adminMiddleware = (req, res, next) => {
   }
 };
 
-// 💡 FIX 1 : On exporte les deux middlewares proprement sous forme d'un objet !
 module.exports = {
   authMiddleware,
   adminMiddleware
