@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { authMiddleware, adminMiddleware } = require('../middleware/authmiddleware');
+const {getAllContacts} = require('../controllers/contactcontroller')
 const {
   // Stats
   getStats,
@@ -56,6 +57,10 @@ router.patch('/annonces/:id/statut', ...protect, updateAnnonceStatut)
 router.get('/forum',                  ...protect, getAllPosts)
 router.delete('/forum/:id',           ...protect, deletePost)
 router.delete('/forum/reply/:id',     ...protect, deleteReply)
+
+
+// ─── Contacts ─────────────────────────────────────────────────────────────────
+router.get('/contacts', ...protect, getAllContacts); // 👈 Ajoute cette ligne
  
 // ─── Export CSV ───────────────────────────────────────────────────────────────
 router.get('/export/users',           ...protect, exportUsersCSV)

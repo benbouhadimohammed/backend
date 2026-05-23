@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
+
 const {authMiddleware} = require("../middleware/authmiddleware");
 
 const {
@@ -15,19 +16,21 @@ const {
   getMesFavoris,
   ajouterFavori,
   supprimerFavori,
- 
+  getPrestataireProfil, 
   uploadPhoto,
+
+
 } = require("../controllers/usercontroller");
 const upload = require('../middleware/upload')
 
 
-// 👤 PROFILE
 router.get("/profile", authMiddleware, getProfile);
 
-// ✏️ UPDATE PROFILE
+router.get('/prestataire/:id', getPrestataireProfil)
+
 router.put("/profile", authMiddleware, updateProfile);
 
-// 🔐 CHANGE PASSWORD
+
 router.put("/profile/password", authMiddleware, changePassword);
 
 // 🗑 DELETE ACCOUNT
@@ -44,6 +47,9 @@ router.delete('/profile/posts/:id',       authMiddleware, supprimerMonPost);
 router.get('/profile/favoris',            authMiddleware, getMesFavoris);
 router.post('/profile/favoris',           authMiddleware, ajouterFavori);
 router.delete('/profile/favoris/:id',     authMiddleware, supprimerFavori);
+
+
+
 
 
 module.exports = router;

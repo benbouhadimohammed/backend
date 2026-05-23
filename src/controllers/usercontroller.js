@@ -1,4 +1,5 @@
 const bcrypt = require("bcrypt");
+const pool = require('../config/db');
 const {
   getUserById,
   updateUser,
@@ -19,7 +20,7 @@ const fs = require('fs');
 // 👤 GET PROFILE
 const getProfile = async (req, res) => {
   try {
-    console.log("USER ID:", req.user.id);
+   
     const user = await getUserById(req.user.id);
    
     res.json(user);
@@ -28,12 +29,52 @@ const getProfile = async (req, res) => {
   }
 };
 
-// ✏️ UPDATE PROFILE
+// Upload photo de profil
+
+
+// Récupérer photo profil par id
+
+
+
+const getPrestataireProfil = async (req, res) => {
+  try {
+    const { id } = req.params
+
+    // Infos du prestataire
+    const user = await pool.query(
+      `SELECT id_user, nom,  type_user, date_inscription, photo, email, numero
+       FROM users 
+       WHERE id_user = $1 AND type_user = 'prestataire'`,
+      [id]
+    )
+
+    if (!user.rows[0]) {
+      return res.status(404).json({ message: 'Prestataire introuvable' })
+    }
+
+    // Ses annonces actives
+    const annonces = await pool.query(
+      `SELECT id_annonce, titre, type_travail, wilaya, prix, photo, date_publication
+       FROM annonces
+       WHERE id_user = $1 AND statut = 'active'
+       ORDER BY date_publication DESC`,
+      [id]
+    )
+
+    res.json({
+      prestataire: user.rows[0],
+      annonces: annonces.rows,
+    })
+  } catch (error) {
+    res.status(500).json({ message: error.message })
+  }
+}
+
 const updateProfile = async (req, res) => {
   try {
-    const { nom, email } = req.body;
+    const { nom, email, numero } = req.body;
      
-    const user = await updateUser(req.user.id, nom, email);
+    const user = await updateUser(req.user.id, nom, email, numero);
 
     res.json(user);
   } catch (err) {
@@ -44,12 +85,12 @@ const uploadPhoto = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: 'Aucune image fournie' });
 
-    // ✅ CORRECTION : Utiliser req.user.id (et non id_user)
+
     const userId = req.user.id; 
 
     const user = await getUserById(userId);
     
-    // Sécurité au cas où l'utilisateur n'est pas trouvé en base
+
     if (!user) {
       return res.status(404).json({ message: 'Utilisateur introuvable' });
     }
@@ -62,7 +103,7 @@ const uploadPhoto = async (req, res) => {
     const photoUrl = `/uploads/${req.file.filename}`;
     const updated = await updatePhoto(userId, photoUrl);
     
-    // ✅ CORRECTION : Passer le bon userId ici aussi
+    
    
     
     res.json({ message: 'Photo mise à jour',photo: updated.photo});
@@ -71,7 +112,7 @@ const uploadPhoto = async (req, res) => {
   }
 };
 
-// 🔐 CHANGE PASSWORD
+
 const changePassword = async (req, res) => {
   try {
     const { oldPassword, newPassword } = req.body;
@@ -176,12 +217,7 @@ const supprimerFavori = async (req, res) => {
   }
 };
 
-// GET /profile/notifications
 
-
-// PUT /profile/notifications/read
-
-// 🗑 DELETE ACCOUNT
 const deleteAccount = async (req, res) => {
   try {
     await deleteUser(req.user.id);
@@ -203,7 +239,9 @@ module.exports = {
   getMesFavoris,
   ajouterFavori,
   supprimerFavori,
- 
+  getPrestataireProfil,
   uploadPhoto,
+ 
+
 
 };

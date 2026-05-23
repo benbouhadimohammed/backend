@@ -5,7 +5,7 @@ const { authMiddleware, adminMiddleware } = require('../middleware/authmiddlewar
 
 router.post("/login", login);
 router.post("/register", register);
-
+router.post("/verify-otp", verifyOTP);
 
 router.get("/protected", authMiddleware, (req, res) => {
   res.json({ message: "Access granted", user: req.user });

@@ -14,6 +14,9 @@ const {
   softDeleteCommentaireDb,
 } = require('../models/forumModel');
 
+const { createNotification } = require('../models/notificationmodel');
+
+
 // ── Helpers ──────────────────────────────────────────────────
 
 function parseId(valeur) {
@@ -57,10 +60,19 @@ async function obtenirSujetOuErreur(sujetId) {
 const creerSujet = async (req, res) => {
   try {
     const { titre, contenu } = req.body;
+    
+    // 1. Tes validations existantes
     validerTexte(titre, 'titre');
     validerTexte(contenu, 'contenu');
+    
+    // 2. Récupérer le nom du fichier généré par ton Multer s'il existe
+    const photo = req.file ? req.file.filename : null; 
+    
     const id_user = await getUserId(req.user.email);
-    const sujet = await createSujetDb(titre.trim(), contenu.trim(), id_user);
+    
+    // 3. On passe la variable "photo" en 4ème argument à ta fonction BDD
+    const sujet = await createSujetDb(titre.trim(), contenu.trim(), id_user, photo);
+    
     res.status(201).json(sujet);
   } catch (error) {
     res.status(erreurStatut(error.message)).json({ message: error.message });
@@ -131,6 +143,14 @@ const ajouterCommentaire = async (req, res) => {
     if (sujet.est_ferme) throw new Error("Impossible d'ajouter un commentaire : le sujet est fermé.");
     const id_user = await getUserId(req.user.email);
     const commentaire = await addCommentaireDb(sujet.id_forum, req.body.contenu.trim(), id_user);
+    if (sujet.id_user && sujet.id_user !== id_user) {
+      await createNotification(
+        sujet.id_user, 
+        'forum_comment', // Le type pour ton switch-case frontend
+        `Quelqu'un a répondu à votre sujet : "${sujet.titre}"`, // Message textuel
+        `/forum${sujet.id_forum}` // Lien de redirection dynamique
+      );
+    }
     res.status(201).json(commentaire);
   } catch (error) {
     res.status(erreurStatut(error.message)).json({ message: error.message });
@@ -156,6 +176,9 @@ const supprimerCommentaire = async (req, res) => {
     res.status(erreurStatut(error.message)).json({ message: error.message });
   }
 };
+
+
+
 
 module.exports = {
   creerSujet,

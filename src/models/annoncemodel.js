@@ -74,7 +74,13 @@ const getAllAnnonces = async ({ wilaya, type_travail, prix_max } = {}) => {
 // Voir une seule annonce
 const getAnnonceById = async (id_annonce) => {
   const result = await pool.query(
-    "SELECT * FROM annonces WHERE id_annonce=$1",
+    `SELECT 
+        a.*, 
+        u.nom AS auteur,
+        u.photo AS auteur_photo 
+     FROM annonces a
+     JOIN users u ON a.id_user = u.id_user
+     WHERE a.id_annonce = $1`, 
     [id_annonce]
   );
   return result.rows[0];

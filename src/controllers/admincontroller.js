@@ -1,4 +1,5 @@
 const pool = require('../config/db')
+const { createNotification } = require('../models/notificationmodel');
 
 // ─── STATS ────────────────────────────────────────────────────────────────────
 
@@ -312,10 +313,11 @@ const updateAnnonceStatut = async (req, res) => {
       return res.status(400).json({ message: 'Statut invalide' })
     }
 
+    // 🟢 AJOUT : On récupère aussi id_user dans le RETURNING pour savoir à qui envoyer la notif
     const result = await pool.query(
       `UPDATE annonces SET statut = $1 
        WHERE id_annonce = $2 
-       RETURNING id_annonce, titre, statut`,
+       RETURNING id_annonce, titre, statut, id_user`, 
       [statut, id]
     )
 
@@ -323,9 +325,25 @@ const updateAnnonceStatut = async (req, res) => {
       return res.status(404).json({ message: 'Annonce not found' })
     }
 
+    const annonceModifiee = result.rows[0]
+
+    // 🟢 AJOUT : Envoi de la notification selon le choix de l'admin
+    if (statut === 'active' || statut === 'rejected') {
+      const estApprouvee = statut === 'active'
+      
+      await createNotification(
+        annonceModifiee.id_user, // L'auteur de l'annonce
+        estApprouvee ? 'annonce_approved' : 'annonce_rejected', // Le type pour ton icône côté frontend
+        estApprouvee 
+          ? `Félicitations ! Votre annonce "${annonceModifiee.titre}" a été approuvée.` 
+          : `Votre annonce "${annonceModifiee.titre}" a été refusée par la modération.`, 
+        `/annonces/${annonceModifiee.id_annonce}` // Le lien vers l'annonce
+      )
+    }
+
     res.json({
       message: statut === 'active' ? 'Annonce approuvée' : 'Annonce rejetée',
-      annonce: result.rows[0]
+      annonce: annonceModifiee
     })
   } catch (error) {
     res.status(500).json({ message: error.message })
