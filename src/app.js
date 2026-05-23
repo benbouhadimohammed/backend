@@ -22,6 +22,13 @@ const contactRoutes = require('./routes/contactroutes');
 const notificationRoutes = require('./routes/notificationroutes');
 
 const server = http.createServer(app);
+app.get('/', (req, res) => {
+  res.status(200).json({
+    message: "Bienvenue sur l'API de BaytiCare ! Le serveur est opérationnel.",
+    status: "Live",
+    database: "Connected to Supabase"
+  });
+});
 
 // Configuration des CORS
 app.use(cors({
